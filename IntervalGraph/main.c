@@ -4,30 +4,38 @@ typedef struct interval {
 	int firstIndex;
 	int lastIndex;
 	int degree;
-	int* neighbors;
+	int color;
+	struct interval** neighbors;
 }interval;
 
 void GreedyColoring();
 void swap(interval*, interval*);
-void bubbleSort(interval*, int);
+void sortIntervalsArray(interval*, int);
 int findNumberOfEdges(interval*, int, int*, int*);
+void setVerticesColors(interval*, int);
 interval* setIntervalArray(int);
 void printFinalData(int,int, int, int);
 void printIntervals(interval* , int );
+void findAndPrintOptimalColoring(interval* , int);
+void freeAllocatedSpace(interval**,int);
+
 
 void main() {
 	GreedyColoring(); // Calling the function, expecting to print out all the data required.
 }
 
 void GreedyColoring() {
-	int i, k, j = 0, numOfEdges, minDegree = 0, maxDegree = 0;
+	int numOfIntervals, j = 0, numOfEdges, minDegree = 0, maxDegree = 0;
 	interval* intervalsArr;
 	printf("Please input k\n");
-	scanf_s("%d", &k); // Getting the interval's family size from the user.
-	intervalsArr = setIntervalArray(k);
-	printIntervals(intervalsArr, k);
-	numOfEdges = findNumberOfEdges(intervalsArr, k, &minDegree, &maxDegree);
-	printFinalData(k, numOfEdges, maxDegree, minDegree);
+	scanf_s("%d", &numOfIntervals); // Getting the interval's family size from the user.
+	intervalsArr = setIntervalArray(numOfIntervals);
+	printIntervals(intervalsArr, numOfIntervals);
+	numOfEdges = findNumberOfEdges(intervalsArr, numOfIntervals, &minDegree, &maxDegree);
+	setVerticesColors(intervalsArr, numOfIntervals);
+	printFinalData(numOfIntervals, numOfEdges, maxDegree, minDegree);
+	findAndPrintOptimalColoring(intervalsArr,numOfIntervals);
+	freeAllocatedSpace(&intervalsArr, numOfIntervals);
 }
 
 void swap(interval *xp, interval *yp)
@@ -37,7 +45,7 @@ void swap(interval *xp, interval *yp)
 	*yp = temp;
 }
 
-void bubbleSort(interval* arr,int arrSize) {
+void sortIntervalsArray(interval* arr,int arrSize) {
 	int i, j;
 	for (i = 0; i < arrSize - 1; i++)
 		// Last i elements are already in place  
@@ -50,7 +58,7 @@ void bubbleSort(interval* arr,int arrSize) {
 }
 
 int findNumberOfEdges(interval *arr, int arrSize,int* minDeg,int* maxDeg) {
-	int i, j,sumOfDegrees=0;
+	int i, j,k=0,sumOfDegrees=0;
 	for (i = 0; i < arrSize; i++) {
 		for (j = 0; j < arrSize; j++) {
 				if (i != j) {
@@ -60,14 +68,31 @@ int findNumberOfEdges(interval *arr, int arrSize,int* minDeg,int* maxDeg) {
 						(arr[i].firstIndex >= arr[j].firstIndex && arr[i].firstIndex <= arr[j].lastIndex))
 					{
 						arr[i].degree++;
+						arr[i].neighbors[k] = &arr[j];
+						k++;
 					}
 				}
 			}
+		k = 0;
+		arr[i].neighbors = (interval**)realloc(arr[i].neighbors,arr[i].degree * sizeof(interval*));
 		sumOfDegrees += arr[i].degree;
 		if (arr[i].degree > *maxDeg) *maxDeg = arr[i].degree;
 		else if (arr[i].degree < *minDeg) *minDeg = arr[i].degree;
 		}
-	return sumOfDegrees/2;
+	return sumOfDegrees/2; // Sum of degrees divided by two(formula for number of edges)
+}
+
+void setVerticesColors(interval* intervalsArr,int size) {
+	int i, j = 0,numberOfColors = 1;
+	for (i = 0; i < size; i++) {
+		if (intervalsArr[i].neighbors != NULL) {
+			for (j = 0; j < intervalsArr[i].degree; j++) {
+				if (intervalsArr[i].color == (*intervalsArr[i].neighbors[j]).color) {
+					(*intervalsArr[i].neighbors[j]).color++;
+				}
+			}
+		}
+	}
 }
 
 interval* setIntervalArray(int size) {
@@ -78,8 +103,10 @@ interval* setIntervalArray(int size) {
 		printf("%dth interval: ", i + 1);
 		scanf_s("%d%d", &intervalsArr[i].firstIndex, &intervalsArr[i].lastIndex);
 		intervalsArr[i].degree = 0;
+		intervalsArr[i].color = 1;
+		intervalsArr[i].neighbors = (interval**)malloc(size * sizeof(interval*));
 	}
-	bubbleSort(intervalsArr, size);
+	sortIntervalsArray(intervalsArr, size);
 	return intervalsArr;
 }
 
@@ -98,4 +125,35 @@ void printIntervals(interval* intervalsArr,int size) {
 		printf("[%d,%d],", intervalsArr[i].firstIndex, intervalsArr[i].lastIndex);
 	}
 	printf("[%d,%d] \n", intervalsArr[i].firstIndex, intervalsArr[i].lastIndex);
+}
+
+void findAndPrintOptimalColoring(interval* intervalsArr, int size) {
+	int i, j;
+	// Sort intervals by colors 
+	for (i = 0; i < size - 1; i++) {
+		for (j = 0; j < size - i - 1; j++) {
+			if (intervalsArr[j].color > intervalsArr[j + 1].color) {
+				swap(&intervalsArr[j], &intervalsArr[j + 1]);
+			}
+		}
+	}
+	//Print intervals by colors
+	printf("Optional Coloring: ");
+	for (i = 0; i < size; i++) { 
+		if (intervalsArr[i].color != intervalsArr[i - 1].color || i == 1) printf("{");
+		printf("[%d,%d]",intervalsArr[i].firstIndex,intervalsArr[i].lastIndex);
+		if (i == size - 1 || intervalsArr[i].color != intervalsArr[i + 1].color) {
+			printf("} = %d", intervalsArr[i].color);
+		}
+		if (i < size - 1) printf(", ");
+	}
+	printf("\n");
+}
+
+void freeAllocatedSpace(interval** arr, int size) {
+	int i,j;
+	for (i = 0; i < size; i++) {
+		free((*arr)[i].neighbors);
+	}
+	free(*arr);
 }
