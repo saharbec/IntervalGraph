@@ -12,9 +12,9 @@ void GreedyColoring();
 void swap(interval*, interval*);
 void sortIntervalsArray(interval*, int);
 int findNumberOfEdges(interval*, int, int*, int*);
-void setVerticesColors(interval*, int);
+int setVerticesColors(interval*, int);
 interval* setIntervalArray(int);
-void printFinalData(int,int, int, int);
+void printFinalData(int,int, int,int, int);
 void printIntervals(interval* , int );
 void findAndPrintOptimalColoring(interval* , int);
 void freeAllocatedSpace(interval**,int);
@@ -25,15 +25,15 @@ void main() {
 }
 
 void GreedyColoring() {
-	int numOfIntervals, j = 0, numOfEdges, minDegree = 0, maxDegree = 0;
+	int numOfIntervals, j = 0, numOfEdges, minDegree = 0, maxDegree = 0,chromaticNumber = 1;
 	interval* intervalsArr;
 	printf("Please input k\n");
 	scanf_s("%d", &numOfIntervals); // Getting the interval's family size from the user.
 	intervalsArr = setIntervalArray(numOfIntervals);
 	printIntervals(intervalsArr, numOfIntervals);
 	numOfEdges = findNumberOfEdges(intervalsArr, numOfIntervals, &minDegree, &maxDegree);
-	setVerticesColors(intervalsArr, numOfIntervals);
-	printFinalData(numOfIntervals, numOfEdges, maxDegree, minDegree);
+	chromaticNumber = setVerticesColors(intervalsArr, numOfIntervals);
+	printFinalData(numOfIntervals, numOfEdges,chromaticNumber, maxDegree, minDegree);
 	findAndPrintOptimalColoring(intervalsArr,numOfIntervals);
 	freeAllocatedSpace(&intervalsArr, numOfIntervals);
 }
@@ -82,17 +82,23 @@ int findNumberOfEdges(interval *arr, int arrSize,int* minDeg,int* maxDeg) {
 	return sumOfDegrees/2; // Sum of degrees divided by two(formula for number of edges)
 }
 
-void setVerticesColors(interval* intervalsArr,int size) {
+int setVerticesColors(interval* intervalsArr,int size) {
 	int i, j = 0,numberOfColors = 1;
 	for (i = 0; i < size; i++) {
 		if (intervalsArr[i].neighbors != NULL) {
 			for (j = 0; j < intervalsArr[i].degree; j++) {
+				// Check if a neighbor of a vertex has the same color
 				if (intervalsArr[i].color == (*intervalsArr[i].neighbors[j]).color) {
 					(*intervalsArr[i].neighbors[j]).color++;
+					// Raise chromatic number if needed
+					if ((*intervalsArr[i].neighbors[j]).color > numberOfColors)
+						numberOfColors = (*intervalsArr[i].neighbors[j]).color; 
 				}
 			}
 		}
+		
 	}
+	return numberOfColors;
 }
 
 interval* setIntervalArray(int size) {
@@ -110,9 +116,10 @@ interval* setIntervalArray(int size) {
 	return intervalsArr;
 }
 
-void printFinalData(int numOfVertices, int numOfEdges, int maxDegree, int minDegree) {
+void printFinalData(int numOfVertices, int numOfEdges,int chromaticNumber, int maxDegree, int minDegree) {
 	printf("G edges = %d \n", numOfEdges);
 	printf("Maximum Degree of G = %d \nMinimum Degree of G = %d \n", maxDegree, minDegree);
+	printf("Chromatic Number of G = %d \n", chromaticNumber);
 	printf("G's Complement Edges = %d \n", (numOfVertices*(numOfVertices - 1)) / 2 - numOfEdges);
 	printf("Maximum Degree of G's Complement = %d \n", numOfVertices - minDegree - 1);
 	printf("Minimum Degree of G's Complement = %d \n", numOfVertices - maxDegree - 1);
